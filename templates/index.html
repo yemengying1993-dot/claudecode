@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一人公司商业模式发现工具</title>
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a24;
+    --surface2: #232336;
+    --border: #2d2d44;
+    --text: #e8e8f0;
+    --text2: #9999b0;
+    --accent: #6c5ce7;
+    --accent2: #a29bfe;
+    --green: #00cec9;
+    --orange: #fdcb6e;
+    --red: #ff7675;
+    --radius: 12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 40px 0 20px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--accent2), var(--green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header p { color: var(--text2); font-size: 15px; }
+
+  /* Status badge */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    margin-top: 12px;
+  }
+  .status-badge.online { background: rgba(0,206,201,0.15); color: var(--green); }
+  .status-badge.offline { background: rgba(255,118,117,0.15); color: var(--red); }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* Steps / sections */
+  .step { display: none; }
+  .step.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+
+  /* Progress bar */
+  .progress-bar {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 32px;
+  }
+  .progress-segment {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .progress-segment.done { background: var(--accent); }
+  .progress-segment.current { background: var(--accent2); }
+
+  /* Section header */
+  .section-header {
+    margin-bottom: 24px;
+  }
+  .section-header .icon { font-size: 32px; margin-bottom: 8px; }
+  .section-header h2 { font-size: 22px; font-weight: 600; }
+  .section-header p { color: var(--text2); font-size: 14px; margin-top: 4px; }
+
+  /* Question card */
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .question-card label {
+    display: block;
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .question-card .hint {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 12px;
+  }
+  .question-card textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 12px;
+    font-size: 15px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 60px;
+    transition: border-color 0.2s;
+  }
+  .question-card textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  /* Choice buttons */
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .choice-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 12px 16px;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .choice-btn:hover { border-color: var(--accent); }
+  .choice-btn.selected {
+    border-color: var(--accent);
+    background: rgba(108,92,231,0.15);
+  }
+
+  /* Navigation buttons */
+  .nav-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+  }
+  .btn {
+    flex: 1;
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+  .btn-primary:hover:not(:disabled) { background: #5a4bd1; }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--accent); }
+
+  /* Welcome */
+  .welcome-features {
+    display: grid;
+    gap: 12px;
+    margin: 24px 0;
+  }
+  .feature-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .feature-item .fi-icon { font-size: 24px; flex-shrink: 0; }
+  .feature-item h3 { font-size: 15px; font-weight: 600; }
+  .feature-item p { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+  /* Loading */
+  .loading {
+    text-align: center;
+    padding: 60px 20px;
+  }
+  .spinner {
+    width: 48px; height: 48px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading p { color: var(--text2); font-size: 15px; }
+
+  /* Results */
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .result-card h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .model-rank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .model-rank.rank-1 { background: var(--orange); color: #333; }
+  .model-rank.rank-2 { background: var(--accent2); }
+  .model-rank.rank-3 { background: var(--text2); }
+
+  .model-meta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .meta-tag {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--surface2);
+    color: var(--text2);
+  }
+
+  .model-examples {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .model-examples li {
+    font-size: 14px;
+    color: var(--text2);
+    margin-left: 16px;
+    margin-bottom: 4px;
+  }
+
+  .first-dollar {
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(0,206,201,0.08);
+    border: 1px solid rgba(0,206,201,0.2);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--green);
+  }
+
+  /* AI Analysis */
+  .ai-analysis {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .ai-analysis h3 {
+    font-size: 17px;
+    margin-bottom: 12px;
+    color: var(--accent2);
+  }
+  .ai-analysis .content {
+    font-size: 14px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+  }
+  .ai-analysis .content h1,
+  .ai-analysis .content h2,
+  .ai-analysis .content h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 16px 0 8px;
+  }
+
+  /* 7-day plan */
+  .plan-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .plan-item:last-child { border-bottom: none; }
+  .plan-day {
+    font-weight: 600;
+    color: var(--accent2);
+    white-space: nowrap;
+    min-width: 55px;
+  }
+
+  /* Checklist */
+  .checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    font-size: 14px;
+  }
+  .checklist-item input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 18px; height: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* Examples tab */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 4px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .case-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .case-card h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .case-card .case-model {
+    font-size: 12px;
+    color: var(--accent2);
+    margin-bottom: 8px;
+  }
+  .case-card .case-story { font-size: 14px; color: var(--text2); margin-bottom: 8px; }
+  .case-card .case-lesson {
+    font-size: 13px;
+    padding: 8px 12px;
+    background: rgba(108,92,231,0.1);
+    border-radius: 8px;
+    color: var(--accent2);
+  }
+
+  /* Restart */
+  .restart-btn {
+    display: block;
+    width: 100%;
+    margin-top: 24px;
+    padding: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text2);
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .restart-btn:hover { border-color: var(--accent); color: var(--text); }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .container { padding: 16px 14px 40px; }
+    .header h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header (always visible) -->
+  <div class="header">
+    <h1>一人公司商业模式发现工具</h1>
+    <p>从"不知道做什么"到"赚到第一块钱"</p>
+    <div id="statusBadge" class="status-badge offline">
+      <span class="status-dot"></span>
+      <span id="statusText">检测中...</span>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-bar" id="progressBar" style="display:none;"></div>
+
+  <!-- Step 0: Welcome -->
+  <div class="step active" id="step-welcome">
+    <div class="welcome-features">
+      <div class="feature-item">
+        <span class="fi-icon">🔭</span>
+        <div>
+          <h3>自我探索</h3>
+          <p>通过 12 个问题挖掘你的技能、兴趣和资源</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="fi-icon">🤖</span>
+        <div>
+          <h3>AI 深度分析</h3>
+          <p>大模型分析你的独特交叉点，发现你没想到的机会</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="fi-icon">🎯</span>
+        <div>
+          <h3>行动计划</h3>
+          <p>生成 7 天行动计划，目标：赚到第一块钱</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;">
+      <button class="btn btn-primary" style="flex:2;" onclick="startExplore()">开始探索</button>
+      <button class="btn btn-secondary" style="flex:1;" onclick="showExamples()">看案例</button>
+    </div>
+  </div>
+
+  <!-- Step: Questions (dynamically rendered) -->
+  <div class="step" id="step-questions">
+    <div class="section-header">
+      <div class="icon" id="sectionIcon"></div>
+      <h2 id="sectionTitle"></h2>
+      <p id="sectionHint"></p>
+    </div>
+    <div id="questionsContainer"></div>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" id="btnBack" onclick="prevSection()">上一步</button>
+      <button class="btn btn-primary" id="btnNext" onclick="nextSection()">下一步</button>
+    </div>
+  </div>
+
+  <!-- Step: Loading -->
+  <div class="step" id="step-loading">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>AI 正在分析你的回答...</p>
+      <p style="font-size:13px;color:var(--text2);margin-top:8px;">结合你的技能、兴趣和资源，寻找最佳匹配</p>
+    </div>
+  </div>
+
+  <!-- Step: Results -->
+  <div class="step" id="step-results">
+    <div id="resultsContainer"></div>
+  </div>
+
+  <!-- Step: Examples -->
+  <div class="step" id="step-examples">
+    <div class="section-header">
+      <div class="icon">🌟</div>
+      <h2>成功案例</h2>
+      <p>他们是怎么从 0 到 1 的</p>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="filterCases('all', this)">全部</button>
+      <button class="tab-btn" onclick="filterCases('海外', this)">海外</button>
+      <button class="tab-btn" onclick="filterCases('国内', this)">国内</button>
+    </div>
+    <div id="casesContainer"></div>
+    <button class="btn btn-primary" style="margin-top:20px;width:100%;" onclick="goToStep('welcome')">返回首页</button>
+  </div>
+
+</div>
+
+<script>
+// ─────────────── State ───────────────
+let questions = [];
+let answers = {};
+let currentSection = 0;
+let totalSections = 0;
+
+// ─────────────── Init ───────────────
+async function init() {
+  // Check status
+  try {
+    const res = await fetch('/api/status');
+    const data = await res.json();
+    const badge = document.getElementById('statusBadge');
+    const text = document.getElementById('statusText');
+    if (data.llm_available) {
+      badge.className = 'status-badge online';
+      text.textContent = `AI 已就绪 (${data.llm_provider})`;
+    } else {
+      badge.className = 'status-badge offline';
+      text.textContent = 'AI 未配置（将使用规则匹配）';
+    }
+  } catch(e) {
+    // ignore
+  }
+
+  // Load questions
+  try {
+    const res = await fetch('/api/questions');
+    questions = await res.json();
+    totalSections = questions.length;
+  } catch(e) {
+    console.error('Failed to load questions', e);
+  }
+}
+init();
+
+// ─────────────── Navigation ───────────────
+function goToStep(name) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + name).classList.add('active');
+  document.getElementById('progressBar').style.display = (name === 'questions') ? 'flex' : 'none';
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function startExplore() {
+  currentSection = 0;
+  renderProgress();
+  renderSection();
+  goToStep('questions');
+}
+
+function renderProgress() {
+  const bar = document.getElementById('progressBar');
+  bar.innerHTML = '';
+  for (let i = 0; i < totalSections; i++) {
+    const seg = document.createElement('div');
+    seg.className = 'progress-segment';
+    if (i < currentSection) seg.classList.add('done');
+    else if (i === currentSection) seg.classList.add('current');
+    bar.appendChild(seg);
+  }
+}
+
+function renderSection() {
+  const section = questions[currentSection];
+  document.getElementById('sectionIcon').textContent = section.icon;
+  document.getElementById('sectionTitle').textContent = section.section;
+  document.getElementById('sectionHint').textContent = `第 ${currentSection+1} / ${totalSections} 步`;
+
+  const container = document.getElementById('questionsContainer');
+  container.innerHTML = '';
+
+  section.questions.forEach(q => {
+    const card = document.createElement('div');
+    card.className = 'question-card';
+
+    if (q.type === 'text') {
+      card.innerHTML = `
+        <label>${q.q}</label>
+        <div class="hint">${q.hint || ''}</div>
+        <textarea id="q_${q.key}" placeholder="在这里输入...">${answers[q.key] || ''}</textarea>
+      `;
+      card.querySelector('textarea').addEventListener('input', (e) => {
+        answers[q.key] = e.target.value;
+      });
+    } else if (q.type === 'choice') {
+      let choicesHtml = '<div class="choices">';
+      q.options.forEach(opt => {
+        const selected = answers[q.key] === opt ? 'selected' : '';
+        choicesHtml += `<button class="choice-btn ${selected}" data-key="${q.key}" data-value="${opt}">${opt}</button>`;
+      });
+      choicesHtml += '</div>';
+      card.innerHTML = `<label>${q.q}</label>` + choicesHtml;
+
+      card.querySelectorAll('.choice-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.dataset.key;
+          const val = btn.dataset.value;
+          answers[key] = val;
+          // Update visual
+          card.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+        });
+      });
+    }
+
+    container.appendChild(card);
+  });
+
+  // Nav buttons
+  document.getElementById('btnBack').style.display = currentSection === 0 ? 'none' : '';
+  document.getElementById('btnNext').textContent = currentSection === totalSections - 1 ? '生成我的计划' : '下一步';
+
+  renderProgress();
+}
+
+function nextSection() {
+  if (currentSection < totalSections - 1) {
+    currentSection++;
+    renderSection();
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  } else {
+    submitAnswers();
+  }
+}
+
+function prevSection() {
+  if (currentSection > 0) {
+    currentSection--;
+    renderSection();
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+}
+
+// ─────────────── Submit & Results ───────────────
+async function submitAnswers() {
+  goToStep('loading');
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({answers}),
+    });
+    const data = await res.json();
+    renderResults(data);
+    goToStep('results');
+  } catch(e) {
+    alert('分析失败，请重试: ' + e.message);
+    goToStep('questions');
+  }
+}
+
+function renderResults(data) {
+  const c = document.getElementById('resultsContainer');
+  let html = '';
+
+  // AI Analysis
+  html += `
+    <div class="ai-analysis">
+      <h3>🤖 AI 个性化分析</h3>
+      <div class="content">${formatMarkdown(data.llm_analysis)}</div>
+    </div>
+  `;
+
+  // Top 3 Models
+  html += '<h3 style="font-size:18px;margin:24px 0 12px;">🏆 最适合你的商业模式</h3>';
+  data.top_models.forEach((model, i) => {
+    html += `
+      <div class="result-card">
+        <h3>
+          <span class="model-rank rank-${i+1}">${i+1}</span>
+          ${model.icon} ${model.name}
+        </h3>
+        <p style="font-size:14px;color:var(--text2);">${model.description}</p>
+        <div class="model-meta">
+          <span class="meta-tag">${model.effort}</span>
+          <span class="meta-tag">${model.scalability}</span>
+        </div>
+        <ul class="model-examples">
+          ${model.examples.map(e => `<li>${e}</li>`).join('')}
+        </ul>
+        <div class="first-dollar">
+          💰 赚到第一块钱: ${model.first_dollar}
+        </div>
+      </div>
+    `;
+  });
+
+  // 7-day plan
+  html += `
+    <div class="result-card">
+      <h3>📅 7 天行动计划</h3>
+      ${Object.entries(data.seven_day_plan).map(([day, task]) =>
+        `<div class="plan-item"><span class="plan-day">${day}</span><span>${task}</span></div>`
+      ).join('')}
+    </div>
+  `;
+
+  // Checklist
+  html += `
+    <div class="result-card">
+      <h3>✅ 商业模式验证清单</h3>
+      ${data.checklist.map(item =>
+        `<div class="checklist-item"><input type="checkbox"><span>${item}</span></div>`
+      ).join('')}
+    </div>
+  `;
+
+  // Motivation
+  html += `
+    <div style="text-align:center;padding:20px;color:var(--text2);font-size:15px;">
+      完美是行动的敌人。<br>赚到第一块钱比想出完美计划重要 100 倍。
+    </div>
+  `;
+
+  html += '<button class="restart-btn" onclick="restart()">重新探索</button>';
+
+  c.innerHTML = html;
+}
+
+function formatMarkdown(text) {
+  if (!text) return '';
+  return text
+    .replace(/### (.*)/g, '<h3>$1</h3>')
+    .replace(/## (.*)/g, '<h2>$1</h2>')
+    .replace(/# (.*)/g, '<h1>$1</h1>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+function restart() {
+  answers = {};
+  currentSection = 0;
+  goToStep('welcome');
+}
+
+// ─────────────── Examples ───────────────
+async function showExamples() {
+  try {
+    const res = await fetch('/api/examples');
+    const cases = await res.json();
+    window._cases = cases;
+    renderCases(cases);
+    goToStep('examples');
+  } catch(e) {
+    alert('加载失败: ' + e.message);
+  }
+}
+
+function renderCases(cases) {
+  const c = document.getElementById('casesContainer');
+  c.innerHTML = cases.map(cs => `
+    <div class="case-card">
+      <h4>${cs.flag} ${cs.name}</h4>
+      <div class="case-model">${cs.model}</div>
+      <div class="case-story">${cs.story}</div>
+      <div class="case-lesson">💡 ${cs.lesson}</div>
+    </div>
+  `).join('');
+}
+
+function filterCases(region, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (region === 'all') {
+    renderCases(window._cases);
+  } else {
+    renderCases(window._cases.filter(c => c.region === region));
+  }
+}
+</script>
+</body>
+</html>
